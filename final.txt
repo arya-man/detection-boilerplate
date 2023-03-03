@@ -1,0 +1,71 @@
+package com.vision;
+
+import androidx.annotation.NonNull;
+
+import com.facebook.react.ReactPackage;
+import com.facebook.react.bridge.NativeModule;
+import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.uimanager.ViewManager;
+
+import com.mrousavy.camera.frameprocessor.FrameProcessorPlugin;
+import java.util.Collections;
+import java.util.List;
+
+public class QRPackage implements ReactPackage {
+  @NonNull
+  @Override
+  public List<NativeModule> createNativeModules(@NonNull ReactApplicationContext reactContext) {
+    FrameProcessorPlugin.register(new QRPlugin());
+    return Collections.emptyList();
+  }
+
+  @NonNull
+  @Override
+  public List<ViewManager> createViewManagers(@NonNull ReactApplicationContext reactContext) {
+    return Collections.emptyList();
+  }
+}
+
+
+
+///////////// FrameProcessorPlugin
+
+
+package com.vision;
+
+import androidx.camera.core.ImageProxy;
+import com.mrousavy.camera.frameprocessor.FrameProcessorPlugin;
+
+import android.util.Log;
+import javax.annotation.Nonnull;
+import com.facebook.react.bridge.WritableNativeMap;
+import com.facebook.react.bridge.WritableNativeArray;
+
+public class QRPlugin extends FrameProcessorPlugin {
+
+  @Override
+    public Object callback(ImageProxy image, Object[] params) {
+        Log.d("ExamplePlugin", image.getWidth() + " x " + image.getHeight() + " Image with format #" + image.getFormat() + ". Logging " + params.length + " parameters:");
+
+        // for (Object param : params) {
+        //     Log.d("ExamplePlugin", "  -> " + (param == null ? "(null)" : param.toString() + " (" + param.getClass().getName() + ")"));
+        // }
+
+        WritableNativeMap map = new WritableNativeMap();
+        map.putString("example_str", "Test");
+        map.putBoolean("example_bool", true);
+        map.putDouble("example_double", 5.3);
+
+        WritableNativeArray array = new WritableNativeArray();
+        array.pushString("Hello!");
+        array.pushBoolean(true);
+        array.pushDouble(17.38);
+
+        map.putArray("example_array", array);
+        return map;
+    }
+
+    QRPlugin() {
+        super("scanQR");
+    }
+}
