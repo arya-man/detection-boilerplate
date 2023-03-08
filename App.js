@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useMemo, } from 'react'
-import { StyleSheet, Text, View, PermissionsAndroid } from 'react-native'
+import { ReadableNativeArray,WritableNativeArray,ReadableNativeMap,WritableNativeMap,StyleSheet, View, Text, PermissionsAndroid } from 'react-native'
 import { Camera, useCameraDevices, useFrameProcessor, } from 'react-native-vision-camera';
 import scanQR from './plugin';
 import { runOnJS } from 'react-native-reanimated';
-import { Canvas, RoundedRect, useValue, useImage, Image } from "@shopify/react-native-skia";
-
+import { Canvas, RoundedRect, useValue, useImage, Image, Surface, SKCanvas, rrect, SKRect, SKPaint } from "@shopify/react-native-skia";
+import { NativeModules, Component  } from 'react-native';
 
 export default function App() {
 
@@ -50,13 +50,28 @@ export default function App() {
     }
   }, [device?.formats])
 
+
   const frameProcessor = useFrameProcessor((frame) => {
     'worklet'
 
-    let result = scanQR(frame)
+    let result = scanQR(frame).get("values")
+
+    console.log(result.getDouble(0))
+
     // to se state
+    return (
+        <Canvas style={{ flex: 1 }}>
+          <RoundedRect
+            x={result.getDouble(0)}
+            y={result.getDouble(1)}
+            width={result.getDouble(2)}
+            height={result.getDouble(3)}
+            r={25}
+            color="lightblue"
+          />
+        </Canvas>
+      );
     // runOnJS(setFaces)(result) -> where setFaces is a state setter
-    console.log("***", result)
 
   }, [screenHeight, screenWidth])
 
@@ -82,13 +97,8 @@ export default function App() {
       </View>
     )
   }
-
-  return (
-    <View style={{ flex: 1, backgroundColor: 'white' }}>
-    </View>
-  )
-
 }
+
 
 const styles = StyleSheet.create({
   container: {

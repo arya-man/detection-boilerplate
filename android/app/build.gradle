@@ -163,7 +163,6 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
-
     implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
 
     debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
@@ -180,11 +179,11 @@ dependencies {
 
 
     implementation "androidx.camera:camera-core:1.1.0-beta02"
-    implementation ('org.pytorch:pytorch_android_lite:1.12.2')
+    implementation ('org.pytorch:pytorch_android_lite:1.10.0')
     {
         exclude module:'fbjni-java-only'
     }
-    implementation ('org.pytorch:pytorch_android_torchvision_lite:1.12.2')
+    implementation ('org.pytorch:pytorch_android_torchvision_lite:1.10.0')
     {
         exclude module:'fbjni-java-only'
     }
