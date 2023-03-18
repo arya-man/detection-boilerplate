@@ -12,10 +12,11 @@
   },
   "dependencies": {
     "@shopify/react-native-skia": "^0.1.175",
-    "react": "18.2.0",
+    "react": "^18.2.0",
     "react-native": "0.71.3",
     "react-native-reanimated": "^2.14.4",
-    "react-native-vision-camera": "^2.15.4"
+    "react-native-vision-camera": "^2.15.4",
+    "react-refresh": "^0.14.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
