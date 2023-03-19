@@ -228,13 +228,10 @@ public class QRPlugin extends FrameProcessorPlugin {
         IntermediateResult result = new IntermediateResult(cls, outputs[i*mOutputColumn+4], rect, 
           Math.round(left), Math.round(top), 
           Math.round(w), Math.round(h));
-        // Result result = new Result(outputs[i*mOutputColumn+4], Math.round(left)
-        //   , Math.round(top), Math.round(w), Math.round(h), mClasses[cls]);
         results.add(result);
       }
     }
     return nonMaxSuppression(results, mNmsLimit, mThreshold);
-    // return results;
   }
 
   private Bitmap imgToBitmap(Image image) {

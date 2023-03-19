@@ -1,25 +1,13 @@
-/* eslint-disable react/self-closing-comp */
-/* eslint-disable react-native/no-inline-styles */
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, {useEffect, useState, useMemo} from 'react';
-import {StyleSheet, View, PermissionsAndroid, Text} from 'react-native';
+import React, {useEffect, useState, useMemo, useRef} from 'react';
+import {StyleSheet, View, Text} from 'react-native';
 import {
   Camera,
   useCameraDevices,
   useFrameProcessor,
 } from 'react-native-vision-camera';
 import scanQR from './plugin';
-import {runOnJS} from 'react-native-reanimated';
-import {
-  Canvas,
-  RoundedRect,
-  useValue,
-  useImage,
-  Image,
-  Rect,
-  Group,
-  useFont,
-} from '@shopify/react-native-skia';
+import {runOnJS, runOnUI} from 'react-native-reanimated';
+import {Canvas, Rect} from '@shopify/react-native-skia';
 
 export default function App() {
   const devices = useCameraDevices();
@@ -29,10 +17,8 @@ export default function App() {
   const [microphonePermission, setMicrophonePermission] = useState(true);
   const [screenHeight, setScreenHeight] = useState(0);
   const [screenWidth, setScreenWidth] = useState(0);
-  const [faces, setFaces] = useState([]);
-  const skia_faces = useValue([]);
-  const [latency, setLatency] = useState(0);
   const [results, setResults] = useState([]);
+  const [finalBoxes, setFinalBoxes] = useState([]);
   const [layout, setLayout] = useState(null);
 
   useEffect(() => {
@@ -63,57 +49,83 @@ export default function App() {
     }
   }, [device?.formats]);
 
-  const updateSkiaFaces = res => setFaces(res);
-
   const frameProcessor = useFrameProcessor(
     frame => {
       'worklet';
 
       let result = scanQR(frame);
-      // to se state
-      // runOnJS(setFaces)(result) -> where setFaces is a state setter
-
-      // console.log(layout.width, layout.height);
-      // console.log('***', result);
       const object = JSON.parse(result);
-
-      if (layout) {
-        const imageWidth = 640;
-        const imageHeight = 640;
-        const scale = Math.max(
-          layout.width / imageWidth,
-          layout.height / imageHeight,
-        );
-        const displayWidth = imageWidth * scale;
-        const displayHeight = imageHeight * scale;
-        const offsetX = (layout.width - displayWidth) / 2;
-        const offsetY = (layout.height - displayHeight) / 2;
-
-        object.mResults.forEach(element => {
-          element.x = Math.floor(offsetX + element.x * scale);
-          element.y = Math.floor(offsetY + element.y * scale);
-          element.w = Math.floor(element.w * scale);
-          element.h = Math.floor(element.h * scale);
-        });
-      }
-
-      runOnJS(updateSkiaFaces)(object.mResults);
+      runOnJS(setResults)(object.mResults);
     },
     [screenHeight, screenWidth],
   );
 
   useEffect(() => {
-    skia_faces.current = faces;
-  }, [faces]);
+    if (layout) {
+      const arr = [];
+      const imageWidth = 640;
+      const imageHeight = 640;
+      const scale = Math.max(
+        layout.width / imageWidth,
+        layout.height / imageHeight,
+      );
+      const displayWidth = imageWidth * scale;
+      const displayHeight = imageHeight * scale;
+      const offsetX = (layout.width - displayWidth) / 2;
+      const offsetY = (layout.height - displayHeight) / 2;
+
+      results.forEach(element => {
+        arr.push({
+          x: Math.floor(offsetX + element.x * scale),
+          y: Math.floor(offsetY + element.y * scale),
+          w: Math.floor(element.w * scale),
+          h: Math.floor(element.h * scale),
+          className: element.className,
+        });
+      });
+      setFinalBoxes(arr);
+    }
+  }, [results, layout]);
 
   const getStyle = result => {
     return {
       position: 'absolute',
-      top: result.y,
-      left: result.x,
+      top: result.y + 5,
+      left: result.x + 5,
       color: 'red',
+      fontWeight: 'bold',
     };
   };
+
+  const updateLayout = event => {
+    setLayout(event.nativeEvent.layout);
+    runOnUI(setLayout)(event.nativeEvent.layout);
+  };
+
+  String.prototype.hashCode = function () {
+    var hash = 0,
+      i,
+      chr;
+    if (this.length === 0) return hash;
+    for (i = 0; i < this.length; i++) {
+      chr = this.charCodeAt(i);
+      hash = (hash << 5) - hash + chr;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
+  };
+
+  const objectColors = [
+    '#FF3B30',
+    '#5856D6',
+    '#34C759',
+    '#007AFF',
+    '#FF9500',
+    '#AF52DE',
+    '#5AC8FA',
+    '#FFCC00',
+    '#FF2D55',
+  ];
 
   if (device && cameraPermission && microphonePermission) {
     return (
@@ -132,41 +144,33 @@ export default function App() {
         />
 
         <Canvas
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            height: '100%',
-            width: '100%',
-            right: 0,
-            bottom: 0,
-            zIndex: 3, // works on ios
-            elevation: 3, // works on android
-          }}
+          style={styles.canvasStyle}
           onLayout={event => {
-            setLayout(event.nativeEvent.layout);
+            updateLayout(event);
           }}>
           {layout != null &&
-            skia_faces != null &&
-            skia_faces.current.map((result, idx) => (
+            finalBoxes.map((box, idx) => (
               <Rect
-                x={result.x}
-                y={result.y}
-                width={result.w}
-                height={result.h}
-                color="red"
+                x={box.x}
+                y={box.y}
+                width={box.w}
+                height={box.h}
+                color={
+                  objectColors[
+                    Math.abs(box.className.hashCode()) % objectColors.length
+                  ]
+                }
                 style="stroke"
                 key={idx}
-                strokeWidth={1}
+                strokeWidth={2}
+                mode="continuous"
               />
             ))}
         </Canvas>
-        {/* {console.log(skia_faces.current)} */}
         {layout != null &&
-          skia_faces != null &&
-          skia_faces.current.map((result, idx) => (
-            <Text key={idx + 'text'} style={getStyle(result)}>
-              {result.className}
+          finalBoxes.map((box, idx) => (
+            <Text key={idx + 'text'} style={getStyle(box)}>
+              {box.className}
             </Text>
           ))}
       </View>
@@ -179,5 +183,16 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  canvasStyle: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    right: 0,
+    bottom: 0,
+    zIndex: 3, // works on ios
+    elevation: 3, // works on android
   },
 });
