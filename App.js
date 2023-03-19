@@ -18,7 +18,6 @@ import {
   Image,
   Rect,
   Group,
-  // Text,
   useFont,
 } from '@shopify/react-native-skia';
 
@@ -64,7 +63,7 @@ export default function App() {
     }
   }, [device?.formats]);
 
-  const updateResults = res => setResults(res);
+  const updateSkiaFaces = res => setFaces(res);
 
   const frameProcessor = useFrameProcessor(
     frame => {
@@ -96,12 +95,9 @@ export default function App() {
           element.w = Math.floor(element.w * scale);
           element.h = Math.floor(element.h * scale);
         });
-        // console.log(frame.width, frame.height, scale);
       }
 
-      // console.log('----', object.mResults);
-
-      runOnJS(updateResults)(object.mResults);
+      runOnJS(updateSkiaFaces)(object.mResults);
     },
     [screenHeight, screenWidth],
   );
@@ -151,7 +147,8 @@ export default function App() {
             setLayout(event.nativeEvent.layout);
           }}>
           {layout != null &&
-            results.map((result, idx) => (
+            skia_faces != null &&
+            skia_faces.current.map((result, idx) => (
               <Rect
                 x={result.x}
                 y={result.y}
@@ -164,8 +161,10 @@ export default function App() {
               />
             ))}
         </Canvas>
+        {/* {console.log(skia_faces.current)} */}
         {layout != null &&
-          results.map((result, idx) => (
+          skia_faces != null &&
+          skia_faces.current.map((result, idx) => (
             <Text key={idx + 'text'} style={getStyle(result)}>
               {result.className}
             </Text>
