@@ -1,5 +1,8 @@
+/* eslint-disable react/self-closing-comp */
+/* eslint-disable react-native/no-inline-styles */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect, useState, useMemo} from 'react';
-import {StyleSheet, Text, View, PermissionsAndroid} from 'react-native';
+import {StyleSheet, View, PermissionsAndroid, Text} from 'react-native';
 import {
   Camera,
   useCameraDevices,
@@ -13,6 +16,10 @@ import {
   useValue,
   useImage,
   Image,
+  Rect,
+  Group,
+  // Text,
+  useFont,
 } from '@shopify/react-native-skia';
 
 export default function App() {
@@ -26,6 +33,8 @@ export default function App() {
   const [faces, setFaces] = useState([]);
   const skia_faces = useValue([]);
   const [latency, setLatency] = useState(0);
+  const [results, setResults] = useState([]);
+  const [layout, setLayout] = useState(null);
 
   useEffect(() => {
     async function perm() {
@@ -55,6 +64,8 @@ export default function App() {
     }
   }, [device?.formats]);
 
+  const updateResults = res => setResults(res);
+
   const frameProcessor = useFrameProcessor(
     frame => {
       'worklet';
@@ -62,7 +73,35 @@ export default function App() {
       let result = scanQR(frame);
       // to se state
       // runOnJS(setFaces)(result) -> where setFaces is a state setter
-      console.log('***', result);
+
+      // console.log(layout.width, layout.height);
+      // console.log('***', result);
+      const object = JSON.parse(result);
+
+      if (layout) {
+        const imageWidth = 640;
+        const imageHeight = 640;
+        const scale = Math.max(
+          layout.width / imageWidth,
+          layout.height / imageHeight,
+        );
+        const displayWidth = imageWidth * scale;
+        const displayHeight = imageHeight * scale;
+        const offsetX = (layout.width - displayWidth) / 2;
+        const offsetY = (layout.height - displayHeight) / 2;
+
+        object.mResults.forEach(element => {
+          element.x = Math.floor(offsetX + element.x * scale);
+          element.y = Math.floor(offsetY + element.y * scale);
+          element.w = Math.floor(element.w * scale);
+          element.h = Math.floor(element.h * scale);
+        });
+        // console.log(frame.width, frame.height, scale);
+      }
+
+      // console.log('----', object.mResults);
+
+      runOnJS(updateResults)(object.mResults);
     },
     [screenHeight, screenWidth],
   );
@@ -70,6 +109,15 @@ export default function App() {
   useEffect(() => {
     skia_faces.current = faces;
   }, [faces]);
+
+  const getStyle = result => {
+    return {
+      position: 'absolute',
+      top: result.y,
+      left: result.x,
+      color: 'red',
+    };
+  };
 
   if (device && cameraPermission && microphonePermission) {
     return (
@@ -86,6 +134,42 @@ export default function App() {
           frameProcessorFps={2}
           frameProcessor={frameProcessor}
         />
+
+        <Canvas
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: '100%',
+            right: 0,
+            bottom: 0,
+            zIndex: 3, // works on ios
+            elevation: 3, // works on android
+          }}
+          onLayout={event => {
+            setLayout(event.nativeEvent.layout);
+          }}>
+          {layout != null &&
+            results.map((result, idx) => (
+              <Rect
+                x={result.x}
+                y={result.y}
+                width={result.w}
+                height={result.h}
+                color="red"
+                style="stroke"
+                key={idx}
+                strokeWidth={1}
+              />
+            ))}
+        </Canvas>
+        {layout != null &&
+          results.map((result, idx) => (
+            <Text key={idx + 'text'} style={getStyle(result)}>
+              {result.className}
+            </Text>
+          ))}
       </View>
     );
   }

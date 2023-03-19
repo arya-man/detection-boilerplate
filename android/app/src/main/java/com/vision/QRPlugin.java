@@ -77,18 +77,18 @@ class AnalysisResult {
 class Result {
   Float score;
   String className;
-  int left;
-  int right;
-  int top;
-  int bottom;
+  int x;
+  int y;
+  int w;
+  int h;
 
-  public Result(Float output, int left, int right, int top, int bottom, String className) {
-      this.score = output;
-      this.className = className;
-      this.left = left;
-      this.right = right;
-      this.top = top;
-      this.bottom = bottom;
+  public Result(Float output, int x, int y, int w, int h, String className) {
+    this.score = output;
+    this.className = className;
+    this.x = x;
+    this.y = y;
+    this.w = w;
+    this.h = h;
   }
 };
 
@@ -96,11 +96,19 @@ class IntermediateResult {
     int classIndex;
     Float score;
     Rect rect;
+    int x;
+    int y;
+    int w;
+    int h;
 
-    public IntermediateResult(int cls, Float output, Rect rect) {
-        this.classIndex = cls;
-        this.score = output;
-        this.rect = rect;
+    public IntermediateResult(int cls, Float output, Rect rect, int x, int y, int w, int h) {
+      this.classIndex = cls;
+      this.score = output;
+      this.rect = rect;
+      this.x = x;
+      this.y = y;
+      this.w = w;
+      this.h = h;
     }
 };
 
@@ -182,8 +190,8 @@ public class QRPlugin extends FrameProcessorPlugin {
     for(int i=0; i<selected.size(); i++)
     {
       IntermediateResult intermediateResult = selected.get(i);
-      Result result = new Result(intermediateResult.score, intermediateResult.rect.left, 
-        intermediateResult.rect.right, intermediateResult.rect.top, intermediateResult.rect.bottom, 
+      Result result = new Result(intermediateResult.score, intermediateResult.x, 
+        intermediateResult.y, intermediateResult.w, intermediateResult.h, 
         mClasses[intermediateResult.classIndex]);
         finalResult.add(result);
     }
@@ -200,8 +208,8 @@ public class QRPlugin extends FrameProcessorPlugin {
         float w = outputs[i* mOutputColumn +2];
         float h = outputs[i* mOutputColumn +3];
 
-        float left = imgScaleX * (x - w/2);
-        float top = imgScaleY * (y - h/2);
+        float left = (x - w/2);
+        float top = (y - h/2);
         float right = imgScaleX * (x + w/2);
         float bottom = imgScaleY * (y + h/2);
 
@@ -214,12 +222,19 @@ public class QRPlugin extends FrameProcessorPlugin {
           }
         }
 
-        Rect rect = new Rect((int)(startX+ivScaleX*left), (int)(startY+top*ivScaleY), (int)(startX+ivScaleX*right), (int)(startY+ivScaleY*bottom));
-        IntermediateResult result = new IntermediateResult(cls, outputs[i*mOutputColumn+4], rect);
+        Rect rect = new Rect((int)(startX+ivScaleX*(left*imgScaleX)), 
+          (int)(startY+top*ivScaleY), (int)(startX+ivScaleX*(right*imgScaleY)), 
+          (int)(startY+ivScaleY*bottom));
+        IntermediateResult result = new IntermediateResult(cls, outputs[i*mOutputColumn+4], rect, 
+          Math.round(left), Math.round(top), 
+          Math.round(w), Math.round(h));
+        // Result result = new Result(outputs[i*mOutputColumn+4], Math.round(left)
+        //   , Math.round(top), Math.round(w), Math.round(h), mClasses[cls]);
         results.add(result);
       }
     }
     return nonMaxSuppression(results, mNmsLimit, mThreshold);
+    // return results;
   }
 
   private Bitmap imgToBitmap(Image image) {
